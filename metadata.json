@@ -1,0 +1,5 @@
+{
+  "name": "Farcaster WarpClicker",
+  "description": "A simple mini-app game for Farcaster with daily check-ins and a leaderboard. Click to score points, check in daily for bonuses, and climb the ranks!",
+  "requestFramePermissions": []
+}
