@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -6,6 +5,15 @@ import Game from './components/Game';
 import Leaderboard from './components/Leaderboard';
 import { User, LeaderboardEntry } from './types';
 import Shop from './components/Shop';
+
+// Fix: Add type definition for window.aistudio to include the user property.
+declare global {
+  interface Window {
+    aistudio?: {
+      user?: User;
+    };
+  }
+}
 
 // In a real app, this would come from a backend, but for now we keep it for other users.
 const MOCK_LEADERBOARD: LeaderboardEntry[] = [
@@ -24,23 +32,31 @@ const App: React.FC = () => {
   const [activePowerUps, setActivePowerUps] = useState<{ [key: string]: number }>({});
   const [clickMultiplier, setClickMultiplier] = useState<number>(1);
 
-  // Load game state from localStorage on mount
-  useEffect(() => {
-    // Check if user data is available in the context on initial load
-    // FIX: Property 'getContext' does not exist on type 'AIStudio'. Assuming the context is the window.aistudio object itself.
-    const context = window.aistudio;
-    if (context && context.user) {
-      setUser(context.user);
-      const savedScore = localStorage.getItem(`warpclicker_score_${context.user.fid}`);
-      const savedCheckIn = localStorage.getItem(`warpclicker_lastCheckIn_${context.user.fid}`);
-      
-      const userOnLeaderboard = MOCK_LEADERBOARD.find(e => e.user.fid === context.user.fid);
-      const initialScore = userOnLeaderboard ? userOnLeaderboard.score : 0;
-
-      setScore(savedScore ? parseInt(savedScore, 10) : initialScore);
-      if (savedCheckIn) setLastCheckIn(savedCheckIn);
+  const loadUserSession = useCallback((contextUser: User) => {
+    setUser(contextUser);
+    
+    const savedScore = localStorage.getItem(`warpclicker_score_${contextUser.fid}`);
+    const savedCheckIn = localStorage.getItem(`warpclicker_lastCheckIn_${contextUser.fid}`);
+    
+    if (savedCheckIn) {
+      setLastCheckIn(savedCheckIn);
+    }
+    
+    if (savedScore) {
+      setScore(parseInt(savedScore, 10));
+    } else {
+      const userOnLeaderboard = MOCK_LEADERBOARD.find(e => e.user.fid === contextUser.fid);
+      setScore(userOnLeaderboard ? userOnLeaderboard.score : 0);
     }
   }, []);
+
+  // Load game state from localStorage on mount if user is already in context
+  useEffect(() => {
+    const context = window.aistudio;
+    if (context && context.user) {
+      loadUserSession(context.user);
+    }
+  }, [loadUserSession]);
 
   // Save game state to localStorage whenever it changes
   useEffect(() => {
@@ -52,19 +68,14 @@ const App: React.FC = () => {
 
   const handleLogin = useCallback(() => {
     // Use user data from the SDK context
-    // FIX: Property 'getContext' does not exist on type 'AIStudio'. Assuming the context is the window.aistudio object itself.
     const context = window.aistudio;
     if (context && context.user) {
-      setUser(context.user);
-      const userOnLeaderboard = MOCK_LEADERBOARD.find(e => e.user.fid === context.user.fid);
-      // Try to load score from storage, otherwise use leaderboard or default to 0
-      const savedScore = localStorage.getItem(`warpclicker_score_${context.user.fid}`);
-      setScore(savedScore ? parseInt(savedScore, 10) : (userOnLeaderboard ? userOnLeaderboard.score : 0));
+      loadUserSession(context.user);
     } else {
         // Fallback for environments where context is not available
-        console.warn("Farcaster context not found. Falling back to mock data.");
+        console.warn("Farcaster context not found.");
     }
-  }, []);
+  }, [loadUserSession]);
 
   const handleLogout = useCallback(() => {
     setUser(null);
@@ -91,7 +102,6 @@ const App: React.FC = () => {
       const bonus = 1000;
       setScore(prevScore => prevScore + bonus);
       setLastCheckIn(new Date().toISOString());
-      // In a real app, this would be a secure backend call.
     }
   }, [canCheckIn]);
 
