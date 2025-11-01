@@ -5,13 +5,13 @@ import Game from './components/Game';
 import Leaderboard from './components/Leaderboard';
 import { User, LeaderboardEntry } from './types';
 import Shop from './components/Shop';
+import LoginModal from './components/LoginModal';
 
-// Fix: Add type definition for window.aistudio to include the user property.
+// Fix: Correctly augment the global AIStudio interface to include the `user` property,
+// resolving the type conflict with the original definition of `window.aistudio`.
 declare global {
-  interface Window {
-    aistudio?: {
-      user?: User;
-    };
+  interface AIStudio {
+    user?: User;
   }
 }
 
@@ -31,6 +31,7 @@ const App: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(MOCK_LEADERBOARD);
   const [activePowerUps, setActivePowerUps] = useState<{ [key: string]: number }>({});
   const [clickMultiplier, setClickMultiplier] = useState<number>(1);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const loadUserSession = useCallback((contextUser: User) => {
     setUser(contextUser);
@@ -67,14 +68,17 @@ const App: React.FC = () => {
   }, [score, lastCheckIn, user]);
 
   const handleLogin = useCallback(() => {
-    // Use user data from the SDK context
+    setIsLoginModalOpen(true);
+  }, []);
+
+  const handleLoginSuccess = useCallback(() => {
     const context = window.aistudio;
     if (context && context.user) {
       loadUserSession(context.user);
     } else {
-        // Fallback for environments where context is not available
-        console.warn("Farcaster context not found.");
+        console.warn("Farcaster context not found. Cannot complete login.");
     }
+    setIsLoginModalOpen(false);
   }, [loadUserSession]);
 
   const handleLogout = useCallback(() => {
@@ -178,7 +182,16 @@ const App: React.FC = () => {
   }, [activePowerUps]);
 
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    return (
+      <>
+        <Login onLogin={handleLogin} />
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </>
+    );
   }
 
   return (
