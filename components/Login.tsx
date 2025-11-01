@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FarcasterIcon } from './icons';
 import { Button } from './Button';
@@ -16,16 +15,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <FarcasterIcon />
           </div>
         </div>
-        <h1 className="text-2xl font-bold text-white mb-2">Welcome to WarpClicker!</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">Welcome to FarClicker!</h1>
         <p className="text-gray-400 mb-8">A mini-app game for Farcaster.</p>
         <div className="space-y-4">
           <Button onClick={onLogin} className="w-full text-lg py-3">
             <FarcasterIcon />
             Sign In with Farcaster
           </Button>
-          <p className="text-xs text-gray-500">
-            This is a simulation. In a real app, this would initiate the Farcaster login flow.
-          </p>
         </div>
       </div>
     </div>
